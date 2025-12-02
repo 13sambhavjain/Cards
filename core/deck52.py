@@ -9,3 +9,4 @@ class Deck52(CardPile):
     def __init__(self, comment: str="") -> None:
         super().__init__(cards=copy.deepcopy(Deck52.ALLCards), comment=comment)
     
+    
