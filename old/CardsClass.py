@@ -48,8 +48,9 @@ class Card():
     def __hash__(self):
         return hash((self.suit, self.rank))
     
-    def __eq__(self, self2: Card) -> bool:
-        return self.suit == self2.suit and self.rank == self2.rank
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Card): return NotImplemented
+        return self.suit == other.suit and self.rank == other.rank
 
 class Deck():
     _PossibleCards: list[Card] = list(Card(*args) for args in itertools.product(Suit, Rank))
