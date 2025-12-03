@@ -3,6 +3,7 @@ import random
 from typing import Iterable, Optional
 from functools import total_ordering
 from collections import deque
+
 @total_ordering
 class Chips:
     def __init__(self, amount: int) -> None:
@@ -37,10 +38,20 @@ class Chips:
     def __add__(self, other: Chips) -> Chips:
         if not isinstance(other, Chips): return NotImplemented
         return Chips(self._amount + other._amount)
+    
+    def __iadd__(self, other: Chips) -> Chips:
+        if not isinstance(other, Chips): return NotImplemented
+        self._amount += other._amount
+        return self
 
     def __sub__(self, other: Chips) -> Chips:
         if not isinstance(other, Chips): return NotImplemented
         return Chips(self._amount - other._amount)
+    
+    def __isub__(self, other: Chips) -> Chips:
+        if not isinstance(other, Chips): return NotImplemented
+        self._amount -= other._amount
+        return self
     
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Chips): return NotImplemented
@@ -64,14 +75,31 @@ class Player:
         self.stack: Chips = stack
         self.hand: CardPile
         self.active = True
+        self.folded = False
         self.auto_buyin_atmax = False
-        # for key, value in kwargs.items():
-        #     setattr(self, key, value)
+        self.auto_top_up = False
+
+    def shift_to_stack(self, amount: Chips) -> None:
+        if amount > self.bankroll:
+            raise ValueError(f"Insufficient bank role({self.bankroll}), of player({self.id}), for shifting {amount} to stack.")
+        else:
+            self.bankroll -= amount
+            stack += amount
+
+    def make_stack_of(self, amount: Chips) -> None:
+        self.bankroll += self.stack
+        self.stack = 0
+        self.shift_to_stack(amount)
 
 class Table():
     _SIZE_LIMIT = 10 # anything less that 22 but prefer less than 10
-    _D
-    def __init__(self, players: list[Player], blind_amount: Chips, min_buyin: Optional[Chips]=None, max_buyin: Optional[Chips]=None, initial_dealer_id=None, size_limit: Optional[int]=None):
+    _DEFAULT_BLIND2BUYIN_MIN = 10
+    _DEFAULT_BLIND2BUYIN_MAX = 50
+
+    def __init__(self, players: list[Player], blind_amount: Chips, 
+                 min_buyin: Optional[Chips]=None, max_buyin: Optional[Chips]=None,
+                 low_chips_amount: Optional[Chips] = None,
+                 initial_dealer_id=None, size_limit: Optional[int]=None):
         
         self.size_limit:int = size_limit if size_limit else Table._SIZE_LIMIT
         if len(players) > self.size_limit:
@@ -89,13 +117,32 @@ class Table():
             raise ValueError(f"Given ({initial_dealer_id=}) is not in current Table.")
         
         self.blind_amount = blind_amount
-        self.min_buyin = buy_in_range[0]
-        self.
-        # 
+        self.max_buyin = min_buyin if min_buyin else self._DEFAULT_BLIND2BUYIN_MAX*self.blind_amount
+        self.min_buyin = max_buyin if max_buyin else self._DEFAULT_BLIND2BUYIN_MIN*self.blind_amount
+        if self.min_buyin > self.max_buyin:
+            raise ValueError(f"{max_buyin=} is less that {min_buyin=}.")
+        self.low_chips_amount = low_chips_amount if low_chips_amount else 2*self.blind_amount
+        
 
-    class Round:
-        def __init__(active_players):
+        
+class Round:
+    def __init__(self, table: Table):
+        self.table = table
+    def get_active_players(self):
+        active_players = []
+        for player in self.table.players:
+            if player.active:
+                if player.auto_top_up:
+                    player.make_stack_of(min(player.bankroll, self.table.max_buyin))
+                if player.stack <= self.table.low_chips_amount:
+                    if player.auto_buyin_atmax and (player.bankroll+) >= self.table.min_buyin:
+                        player.make_stack_of(min(player.bankroll, self.table.max_buyin))
+                    else:
+                        player.active=False
+                        continue
+                player.folded = False
+                active_players.append(player)
 
+    def dealCards
 
-    def round_deal(self):
         
