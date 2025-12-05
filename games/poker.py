@@ -1,5 +1,5 @@
 from core import CardPile, Deck52
-import random
+import random, itertools
 from typing import Iterable, Optional
 from functools import total_ordering
 from collections import deque
@@ -104,13 +104,20 @@ class Player:
         self.stack = Chips(0)
         self.shift_to_stack(amount)
 
-    def bet(self, amount: Chips):
+    def bet(self, amount: Chips) -> Chips:
+        "returns the net amount that a play adds to his current bet, all-in if insufficient"
         net_amount = amount - self.current_bet
-        if net_amount > self.stack:
-            raise ValueError(f"Cannot bet more than the stack. {self.id=}, {self.stack=}, {net_amount=}")
+        if net_amount >= self.stack:
+            net_amount = self.stack
+            self.all_in = True
+            # raise ValueError(f"Cannot bet more than the stack. {self.id=}, {self.stack=}, {net_amount=}")
         self.stack -= net_amount
         self.current_bet += net_amount
-    
+        return net_amount
+
+def cyclic(lst, start=0):
+    return itertools.islice(itertools.cycle(lst), start, None)
+
 
 class Table():
     _SIZE_LIMIT = 10 # anything less that 22 but prefer less than 10
@@ -153,13 +160,14 @@ class Round:
         self.table = table
         self.id = table.round_count + 1
         # fixed start of a round
-        self.deck: CardPile = Deck52(f"Start deck of round {self.id}").shuffle()
+        self.deck: CardPile = Deck52(f"Start deck of round {self.id}")
+        self.deck.shuffle()
         self.players = self.get_active_players()
         if len(self.players) < 2:
             raise ValueError(f"not enought active players on the table to play poker")
         self.dealCards()
-        self.main_pot = Chips(0)
-        self.current_bets: dict[ID, Chips] = {}
+        self.pots= [Chips(0)]
+        self.call_amount: Chips = Chips(0)
 
     @property
     def dealer(self):
@@ -168,10 +176,14 @@ class Round:
     def small_blind(self):
         return self.players[1]
     @property
-    def small_blind(self):
-        return self.players[2]
-    
-
+    def big_blind(self):
+        return self.players[2%len(self.players)]
+    @property
+    def current_pot(self):
+        return self.pots[-1]
+    @current_pot.setter
+    def current_pot(self, value: Chips):
+        self.pots[-1] = value
 
 
     def get_active_players(self) -> list[Player]:
@@ -197,7 +209,48 @@ class Round:
                 self.deck.dealCard(player.hand, face_up=False)
     
     def place_blinds(self):
-        self.current_bets
+        blind = self.small_blind.bet(self.table.blind_amount)
+        b_blind = self.big_blind.bet(2*self.table.blind_amount)
+        self.current_pot = blind + b_blind
+        self.last_call = max(blind, b_blind)
+        
+
+    def betting_round(self, start: int=0):
+        for player in cyclic(self.players, start):
+            if player.all_in or player.folded or (not player.active):
+                continue
+            elif self.last_call == player.current_bet:
+                break
+            else:
+                play = input(f"{player.id=} fold(f), call(c) {self.call_amount}, raise(r <amount>)")
+                if play == 'f':
+                    self.fold(player)
+                    bet = Chips(0)
+                elif play == 'c':
+                    bet = self.call(player)
+                elif play[0] == 'r':
+                    amount = Chips(int(play.split()[-1]))
+                    bet = self.raise_bet(player, amount)
+            if player.all_in:
+                raise NotImplementedError
+
+
+    
+    def fold(self, player:Player):
+        player.folded = True
+    def call(self, player: Player):
+        bet = player.bet(self.last_call)
+        self.current_pot += bet
+        return bet
+    def raise_bet(self, player: Player, amount: Chips):
+        bet = player.bet(amount)
+        self.current_pot += bet
+        self.last_call = max(self.last_call, bet)
+        return bet
+    
+
+        
+
 
 
         
