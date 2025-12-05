@@ -166,6 +166,8 @@ class Round:
         if len(self.players) < 2:
             raise ValueError(f"not enought active players on the table to play poker")
         self.dealCards()
+        self.community_cards = CardPile(f"Community cards for round({self.id})")
+        self.burns = CardPile(f"Burn cards for round({self.id})")
         self.pots= [Chips(0)]
         self.call_amount: Chips = Chips(0)
 
@@ -192,7 +194,7 @@ class Round:
             if player.active:
                 if player.auto_top_up:
                     player.make_stack_of(min(player.bankroll, self.table.max_buyin))
-                elif player.stack <= self.table.low_chips_amount:
+                if player.stack <= self.table.low_chips_amount:
                     if player.auto_buyin_atmax and (player.bankroll + player.stack) >= self.table.min_buyin:
                         player.make_stack_of(min(player.bankroll, self.table.max_buyin))
                     else:
@@ -216,23 +218,31 @@ class Round:
         
 
     def betting_round(self, start: int=0):
+        half_bets = []
         for player in cyclic(self.players, start):
             if player.all_in or player.folded or (not player.active):
                 continue
             elif self.last_call == player.current_bet:
                 break
             else:
-                play = input(f"{player.id=} fold(f), call(c) {self.call_amount}, raise(r <amount>)")
-                if play == 'f':
-                    self.fold(player)
-                    bet = Chips(0)
-                elif play == 'c':
-                    bet = self.call(player)
-                elif play[0] == 'r':
-                    amount = Chips(int(play.split()[-1]))
-                    bet = self.raise_bet(player, amount)
-            if player.all_in:
-                raise NotImplementedError
+                while True:
+                    play = input(f"{player.id=} fold(f), call(c) {self.call_amount}, raise(r <amount>)")
+                    if play == 'f':
+                        self.fold(player)
+                    else:
+                        if play == 'c':
+                            bet = self.call(player)
+                        elif play[0] == 'r':
+                            amount = Chips(int(play.split()[-1]))
+                            bet = self.raise_bet(player, amount)
+                        else:
+                            print("Wrong Input)")
+                            continue
+                        if bet != self.last_call:
+                            # need to make a side pot
+                            half_bets.append(bet)
+                    break
+             
 
 
     
@@ -247,7 +257,25 @@ class Round:
         self.current_pot += bet
         self.last_call = max(self.last_call, bet)
         return bet
+    def burn_card(self) -> None:
+        self.deck.dealCard(self.burns, face_up=None)
+    # community card openings
+    def open_flop(self) -> None:
+        self.burn_card()
+        for _ in range(3):
+            self.deck.dealCard(self.community_cards, face_up=True)
+    def open_turn(self):
+        self.burn_card()
+        self.deck.dealCard(self.community_cards, face_up=True)
+    open_river = open_turn
+
+    def rank_hand(self):
+        
+
     
+    def round_end(self):
+        
+        pass
 
         
 

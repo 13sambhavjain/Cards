@@ -25,7 +25,7 @@ class CardPile():
     def addCards(self, cards: list[Card]) -> None:
         self._cards += cards
     
-    def dealCard(self, deck: CardPile, face_up: bool|None = None) -> CardPile:
+    def dealCard(self, deck: CardPile, face_up: bool = False) -> CardPile:
         card: Card = self._cards.pop()
         if face_up is not None:
             card.face_up = face_up
