@@ -1,5 +1,3 @@
 # check_path.py
-from core import *
-s = Rank(3)
-
-print(Deck52.ALLCards)
+from tests import test_poker
+print(test_poker.test_rank_hands())

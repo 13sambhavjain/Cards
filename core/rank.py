@@ -49,4 +49,4 @@ class Rank(IntEnum):
             return self.short_name
         return self.__str__()
     
-    
+STANDARD_RANKS: list[Rank] = [Rank(14)] + [Rank(x) for x in range(2, 14)]

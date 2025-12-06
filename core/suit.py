@@ -44,3 +44,5 @@ class Suit(StrEnum):
         """helper __init__ for better type hinting
         (It might not run at runtime but helps Mypy understand the attributes exist)"""
         self.color:str = color
+
+STANDARD_SUITS: list[Suit] = [Suit.SPADES, Suit.HEARTS, Suit.CLUBS, Suit.DIAMONDS]

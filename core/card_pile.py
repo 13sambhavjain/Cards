@@ -1,4 +1,6 @@
-from .card import Card
+from .card import Card, Rank, Suit
+from .rank import STANDARD_RANKS
+from .suit import STANDARD_SUITS
 import random
 
 # _PossibleCards: list[Card] = list(Card(*args) for args in itertools.product(Suit, Rank))
@@ -94,5 +96,29 @@ class CardPile():
     
     def __repr__(self):
         return f'{self.__class__.__name__}(cards={self._cards!r},comment={self.comment})'
+    
+    def __contains__(self, item: Card)->bool:
+        return item in self._cards
+    
+    def rank_counts(self) -> dict[Rank, int]:
+        rank_counts: dict[Rank, int] = dict()
+        # {rank:0 for rank in STANDARD_RANKS}
+        for card in self._cards:
+            if card.rank in rank_counts:
+                rank_counts[card.rank] += 1
+            else:
+                rank_counts[card.rank] = 1
+        return rank_counts
+    
+    def suit_counts(self) -> dict[Suit, int]:
+        suit_counts: dict[Suit, int] = dict()
+        # {suit:0 for suit in STANDARD_SUITS}
+        for card in self._cards:
+            if card.suit in suit_counts:
+                suit_counts[card.suit] += 1
+            else:
+                suit_counts[card.suit] = 1
+        return suit_counts
+    
 
 

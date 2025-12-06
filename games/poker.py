@@ -74,10 +74,11 @@ class Chips:
 
     def __rsub__(self, other: int) -> Chips:
         return NotImplemented
+    
 
 ID = str 
 class Player:
-    def __init__(self, id:ID, bankroll: Chips, stack: Optional[Chips]):
+    def __init__(self, id:ID, bankroll: Chips, stack: Optional[Chips]=None):
         # Overall Attributes
         self.id = id
         self.bankroll: Chips = bankroll
@@ -151,8 +152,12 @@ class Table():
         else:
             raise ValueError(f"Given ({initial_dealer_id=}) is not in current Table.")
         # Other Game Attributes
+        self.init_active_player_stack_forced()
         self.round_count = 0
         # self.current_rount
+    def init_active_player_stack_forced(self):
+        for player in self.players:
+            player.make_stack_of(min(self.max_buyin, player.bankroll))
         
 class Round:
     def __init__(self, table: Table):
@@ -166,10 +171,11 @@ class Round:
         if len(self.players) < 2:
             raise ValueError(f"not enought active players on the table to play poker")
         self.dealCards()
-        self.community_cards = CardPile(f"Community cards for round({self.id})")
-        self.burns = CardPile(f"Burn cards for round({self.id})")
+        self.community_cards = CardPile([], f"Community cards for round({self.id})")
+        self.burns = CardPile([], f"Burn cards for round({self.id})")
         self.pots= [Chips(0)]
         self.call_amount: Chips = Chips(0)
+
 
     @property
     def dealer(self):
@@ -268,9 +274,35 @@ class Round:
         self.burn_card()
         self.deck.dealCard(self.community_cards, face_up=True)
     open_river = open_turn
-
-    def rank_hand(self):
+    
+    def rank_hand(self, player: Player):
+        net = self.community_cards + player.hand
+        rank_counts = dict(sorted(net.rank_counts().items() ,key=lambda x: (x[1], x[0]), reverse=True))
+        suit_counts = net.suit_counts()
+        for suit, count in suit_counts.items():
+            if count >= 5:
+                # check staright flush to flush
+                # check straight fluch here
+                flush = True
+                pass
+            else:
+                # check four of a kind to high card
+                fluch = False
+                pass
+        for i, rank in enumerate(rank_counts):
+            g
+    def rank_hands(self):
+        ans = dict()
+        for player in self.players:
+            if player.active and not player.folded:
+                ans[player.id] = self.rank_hand(player)
+        return ans
         
+        
+        # not straight flush
+        # check four of a kind, three
+
+
 
     
     def round_end(self):
