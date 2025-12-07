@@ -1,4 +1,4 @@
-from core import CardPile, Deck52
+from core import CardPile, Deck52, Rank, Card
 import random, itertools
 from typing import Iterable, Optional
 from functools import total_ordering
@@ -275,22 +275,46 @@ class Round:
         self.deck.dealCard(self.community_cards, face_up=True)
     open_river = open_turn
     
-    def rank_hand(self, player: Player):
+    def rank_hand(self, player: Player) -> tuple[int, list[Card]]:
         net = self.community_cards + player.hand
-        rank_counts = dict(sorted(net.rank_counts().items() ,key=lambda x: (x[1], x[0]), reverse=True))
         suit_counts = net.suit_counts()
+        flush = False
         for suit, count in suit_counts.items():
             if count >= 5:
                 # check staright flush to flush
                 # check straight fluch here
                 flush = True
-                pass
-            else:
-                # check four of a kind to high card
-                fluch = False
-                pass
-        for i, rank in enumerate(rank_counts):
-            g
+                f_suit = suit
+                break
+        if flush:
+            f_suit_cards: list[Card] = []
+            for card in net:
+                if card.suit == f_suit:
+                    f_suit_cards.append(card)
+            f_suit_cards.sort(reverse=True, key=lambda card: card.rank)
+            s_flush = self.straight_flush(f_suit_cards)
+            if s_flush:
+                if s_flush[0].rank == Rank.Ace:
+                    return 1, s_flush # Royal Flush
+                else:
+                    return 2, s_flush # Straight Flush
+            
+        rank_counts = dict(sorted(net.rank_counts().items() ,key=lambda x: (x[1], x[0]), reverse=True))
+        if rank_counts[0] == 4:
+            # Four of a kind
+            pass
+        if rank_counts[0] == 3 and rank_counts[1] >= 2:
+            # Full House
+            pass
+        if flush:
+            return 5, f_suit_cards[:6]
+        if 
+
+
+
+
+            
+                
     def rank_hands(self):
         ans = dict()
         for player in self.players:
@@ -300,14 +324,29 @@ class Round:
         
         
         # not straight flush
-        # check four of a kind, three
-
-
-
-    
+        # check four of a kind, three    
     def round_end(self):
         
         pass
+
+    @staticmethod
+    def straight_flush(f_suit_cards: list[Card]) -> bool|list[Card]:
+        count = 0
+        for i in range(1, len(f_suit_cards)):
+            if f_suit_cards[i-1].rank - f_suit_cards[i].rank == 1:
+                count += 1
+                if count == 5: #straight flush is there
+                    last_card_index = i
+                    break
+            else:
+                count = 0
+                if i > 3:
+                    return False
+        else:
+            return False
+        return f_suit_cards[last_card_index-5: last_card_index+1]
+    
+    def
 
         
 

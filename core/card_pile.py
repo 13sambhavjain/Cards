@@ -120,5 +120,10 @@ class CardPile():
                 suit_counts[card.suit] = 1
         return suit_counts
     
+    def sort(self, *, key = None, reverse:bool = False):
+        self._cards.sort(key=key, reverse=reverse)
+
+
+    
 
 
