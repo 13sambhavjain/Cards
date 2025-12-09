@@ -35,7 +35,8 @@ class CardPile():
         return self
     
     def __str__(self) -> str:
-        resp = f"CardPile({self.comment!r}) From Bottom to Top => "
+        # resp = f"CardPile({self.comment!r}) From Bottom to Top => "
+        resp=""
         # for card in self._cards:
         #     resp += card.__repr__() + '\n'
         return resp + " ".join(str(card) for card in self._cards)
@@ -50,6 +51,10 @@ class CardPile():
     def flip(self) -> None:
         self._cards.reverse()
         self.flipCards_inplace()
+
+    def flip_open(self) -> None:
+        for card in self._cards:
+            card.face_up = True
     
     def __iter__(self):
         return iter(self._cards)
@@ -122,6 +127,28 @@ class CardPile():
     
     def sort(self, *, key = None, reverse:bool = False):
         self._cards.sort(key=key, reverse=reverse)
+    
+    def get_cards_with_rank(self, rank: Rank) -> list[Card]:
+        resp = []
+        for card in self._cards:
+            if card.rank == rank:
+                resp.append(card)
+        return resp
+    
+    def get_cards_with_suit(self, suit: Suit) -> list[Card]:
+        resp = []
+        for card in self._cards:
+            if card.suit == suit:
+                resp.append(card)
+        return resp
+    
+    def seperate_cards_by_rank(self, rank:Rank) -> list[Card]:
+        resp = self.get_cards_with_rank(rank)
+        for card in resp:
+            self._cards.remove(card)
+        return resp
+    
+        
 
 
     

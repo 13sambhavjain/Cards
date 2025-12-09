@@ -1,8 +1,23 @@
-from core import CardPile, Deck52, Rank, Card
+from core import CardPile, Deck52, Rank, Card, Suit
 import random, itertools
 from typing import Iterable, Optional
 from functools import total_ordering
 from collections import deque
+from enum import IntEnum
+
+class HandRank(IntEnum):
+    ROYAL_FLUSH = 1
+    STRAIGHT_FLUSH = 2
+    FOUR_OF_A_KIND = 3
+    FULL_HOUSE = 4
+    FLUSH = 5
+    STRAIGHT = 6
+    THREE_OF_A_KIND = 7
+    TWO_PAIR = 8
+    ONE_PAIR = 9
+    HIGH_CARD = 10
+
+
 
 @total_ordering
 class Chips:
@@ -88,7 +103,7 @@ class Player:
         self.auto_buyin_atmax = False
         self.auto_top_up = False
         # Round Attributes
-        self.hand: Optional[CardPile] = None
+        self.hand: CardPile
         self.folded = False
         self.all_in: bool = False
         self.current_bet: Chips = Chips(0)
@@ -275,18 +290,11 @@ class Round:
         self.deck.dealCard(self.community_cards, face_up=True)
     open_river = open_turn
     
-    def rank_hand(self, player: Player) -> tuple[int, list[Card]]:
-        net = self.community_cards + player.hand
+    def rank_hand(self, player: Player) -> tuple[HandRank, list[Card]]:
+        net :CardPile = self.community_cards + player.hand
         suit_counts = net.suit_counts()
-        flush = False
-        for suit, count in suit_counts.items():
-            if count >= 5:
-                # check staright flush to flush
-                # check straight fluch here
-                flush = True
-                f_suit = suit
-                break
-        if flush:
+        
+        if (f_suit:=self.flush(suit_counts)):
             f_suit_cards: list[Card] = []
             for card in net:
                 if card.suit == f_suit:
@@ -295,27 +303,37 @@ class Round:
             s_flush = self.straight_flush(f_suit_cards)
             if s_flush:
                 if s_flush[0].rank == Rank.Ace:
-                    return 1, s_flush # Royal Flush
+                    return HandRank.ROYAL_FLUSH, s_flush # Royal Flush
                 else:
-                    return 2, s_flush # Straight Flush
+                    return HandRank.STRAIGHT_FLUSH, s_flush # Straight Flush
             
-        rank_counts = dict(sorted(net.rank_counts().items() ,key=lambda x: (x[1], x[0]), reverse=True))
-        if rank_counts[0] == 4:
-            # Four of a kind
-            pass
-        if rank_counts[0] == 3 and rank_counts[1] >= 2:
-            # Full House
-            pass
-        if flush:
-            return 5, f_suit_cards[:6]
-        if 
+        rank_counts = sorted(net.rank_counts().items() ,key=lambda x: (x[1], x[0]), reverse=True)
+        net.sort(key=lambda card: card.rank, reverse=True)
+        if rank_counts[0][1] == 4:
+            return HandRank.FOUR_OF_A_KIND, net.seperate_cards_by_rank(rank_counts[0][0]) + net[0:1]
+        elif rank_counts[0][1] == 3 and rank_counts[1][1] >= 2:
+            return HandRank.FULL_HOUSE, net.seperate_cards_by_rank(rank_counts[0][0]) + net.seperate_cards_by_rank(rank_counts[1][0])[0:2]
+        elif f_suit:
+            return HandRank.FLUSH, f_suit_cards[:6]
+        elif (st := self.straight(net, rank_counts)):
+            return HandRank.STRAIGHT, st
+        elif rank_counts[0][1] == 3:
+            return HandRank.THREE_OF_A_KIND, net.seperate_cards_by_rank(rank_counts[0][0]) + net[0:2]
+        elif rank_counts[0][1] == 2:
+            if rank_counts[1][1] == 2:
+                return HandRank.TWO_PAIR, net.seperate_cards_by_rank(rank_counts[0][0]) + net.seperate_cards_by_rank(rank_counts[1][0]) + net[0:1]
+            else:
+                return HandRank.ONE_PAIR, net.seperate_cards_by_rank(rank_counts[0][0]) + net[0:3]
+        else:
+            return HandRank.HIGH_CARD, net[0:5]
+        
 
 
 
 
             
                 
-    def rank_hands(self):
+    def rank_hands(self) -> dict[ID, tuple[HandRank, list[Card]]]:
         ans = dict()
         for player in self.players:
             if player.active and not player.folded:
@@ -330,24 +348,53 @@ class Round:
         pass
 
     @staticmethod
-    def straight_flush(f_suit_cards: list[Card]) -> bool|list[Card]:
+    def straight_flush(f_suit_cards: list[Card]) -> list[Card]:
         count = 0
         for i in range(1, len(f_suit_cards)):
             if f_suit_cards[i-1].rank - f_suit_cards[i].rank == 1:
                 count += 1
                 if count == 5: #straight flush is there
-                    last_card_index = i
-                    break
+                    return f_suit_cards[i-4: i+1]
             else:
                 count = 0
-                if i > 3:
-                    return False
-        else:
-            return False
-        return f_suit_cards[last_card_index-5: last_card_index+1]
+                if i > 2:
+                    return []
+        return []
     
-    def
-
+    @staticmethod
+    def straight(cards: CardPile, rank_count: list[tuple[Rank, int]]) -> list[Card]:
+        count = 0
+        ranks = list(x[0] for x in rank_count)
+        ranks.sort(reverse=True)
+        for i in range(1, len(ranks)):
+            if ranks[i-1] - ranks[i] == 1:
+                count += 1
+                if count == 5: #straight is there
+                    ans = []
+                    for j in range(ranks[i]+4, ranks[i]-1, -1):
+                        for card in cards:
+                            if card.rank == Rank(j):
+                                ans.append(card)
+                                break
+                        else:
+                            raise Exception(f"Coundn't find {Rank(j)} in {cards}")
+                    return ans
+            elif ranks[i-1] - ranks[i] == 0:
+                continue
+            else:
+                count = 0
+                if i > 2:
+                    return [] #False
+        return [] #False
+    
+    @staticmethod
+    def flush(suit_counts: dict[Suit, int]) -> Optional[Suit] :
+        for suit, count in suit_counts.items():
+            if count >= 5:
+                # check staright flush to flush
+                # check straight fluch here
+                return suit
+        return None
         
 
 
