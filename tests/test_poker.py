@@ -14,7 +14,7 @@ def test_rank_hands():
         r.open_flop()
         r.open_turn()
         r.open_river()
-        rhs = r.rank_hands()
+        rhs = HandRankfunc.rank_hands(r)
         print(r.community_cards)
         for p, h in rhs.items():
                 p_map[p].hand.flip_open()
