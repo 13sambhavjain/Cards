@@ -1,5 +1,5 @@
 from enum import IntEnum
-from . import Card, CardPile, Rank, Suit, Round
+from . import Card, CardPile, Rank, Suit, Round, ID
 from typing import Optional
 
 class HandRank(IntEnum):
@@ -55,12 +55,19 @@ class HandRankfunc():
 
     @staticmethod            
     def rank_hands(round: Round):
-        ans = []
+        temp: list[tuple[set[ID], tuple[HandRank, list[Card]]]] = []
         for player in round.players:
             if player.active and not player.folded:
-                ans.append((player.id, HandRankfunc.rank_of_hand(round.community_cards + player.hand)))
-        ans.sort(key= lambda x: (-x[1][0], x[1][1][0].rank, x[1][1][1].rank, x[1][1][2].rank, x[1][1][3].rank, x[1][1][4].rank), reverse=True)
-        ans = dict(ans)
+                temp.append(({player.id,}, HandRankfunc.rank_of_hand(round.community_cards + player.hand)))
+        temp.sort(key= lambda x: (-x[1][0], x[1][1][0].rank, x[1][1][1].rank, x[1][1][2].rank, x[1][1][3].rank, x[1][1][4].rank), reverse=True)
+        i = 1
+        while i < len(temp):
+            if temp[i][1] == temp[i-1][1]:
+                temp[i-1][0].add(*temp[i][0])
+                del temp[i]
+            else:
+                i += 1
+        ans = {tuple(x[0]): x[1] for x in temp}
         return ans
         
         # not straight flush

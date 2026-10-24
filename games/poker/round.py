@@ -93,6 +93,7 @@ class Round:
                             half_bets.add(bet)
                     break
         if half_bets:
+            self.current_pot = Chips(0)
             reduce: list[Chips] = list(half_bets)
             reduce.sort()
             for r in reduce:
@@ -105,6 +106,14 @@ class Round:
                     if player.current_bet == 0:
                         player.last_pot_index = len(self.pots)
                 self.pots.append(side_pot)
+
+        for player in self.players:
+            if player.folded or (not player.active) or player.current_bet==0:
+                continue
+            player.current_bet -= self.last_call
+
+        
+
                     
     
     def fold(self, player:Player):

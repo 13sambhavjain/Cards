@@ -37,6 +37,7 @@ class Table():
         self.init_active_player_stack_forced()
         self.round_count = 0
         # self.current_rount
+        
     def init_active_player_stack_forced(self):
         for player in self.players:
             player.make_stack_of(min(self.max_buyin, player.bankroll))
